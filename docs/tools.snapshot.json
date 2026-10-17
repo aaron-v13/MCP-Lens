@@ -1,0 +1,238 @@
+{
+  "tools": [
+    {
+      "name": "search_notes",
+      "description": "Search markdown notes using BM25-style keyword ranking across titles, body, and tags.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Search keywords or phrases"
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Maximum results to return (1-10, default 5)",
+            "minimum": 1,
+            "maximum": 10
+          }
+        },
+        "required": [
+          "query"
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "results": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "noteId": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "date": {
+                  "type": "string"
+                },
+                "snippet": {
+                  "type": "string"
+                },
+                "score": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "noteId",
+                "title",
+                "date",
+                "snippet",
+                "score"
+              ]
+            }
+          },
+          "meta": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "results",
+          "meta"
+        ]
+      }
+    },
+    {
+      "name": "summarize",
+      "description": "Summarize a specific note or search query with incremental streamed chunks.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "noteId": {
+            "type": "string",
+            "description": "Target note ID (e.g. n001)"
+          },
+          "query": {
+            "type": "string",
+            "description": "Query to summarize across notes"
+          },
+          "style": {
+            "type": "string",
+            "enum": [
+              "brief",
+              "detailed"
+            ],
+            "description": "Summary detail level"
+          }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "summary": {
+            "type": "string"
+          },
+          "sources": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "style": {
+            "type": "string"
+          },
+          "meta": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "summary",
+          "sources",
+          "style",
+          "meta"
+        ]
+      }
+    },
+    {
+      "name": "extract_tasks",
+      "description": "Deterministic extraction of open action items, TODOs, due dates, and assignees from notes.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "noteId": {
+            "type": "string",
+            "description": "Extract from specific note"
+          },
+          "query": {
+            "type": "string",
+            "description": "Filter tasks by keyword or topic"
+          },
+          "sinceDays": {
+            "type": "integer",
+            "description": "Lookback window in days (1-60) from reference date",
+            "minimum": 1,
+            "maximum": 60
+          }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "tasks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "task": {
+                  "type": "string"
+                },
+                "owner": {
+                  "type": "string"
+                },
+                "due": {
+                  "type": "string"
+                },
+                "sourceNoteId": {
+                  "type": "string"
+                },
+                "sourceTitle": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "task",
+                "sourceNoteId",
+                "sourceTitle"
+              ]
+            }
+          },
+          "count": {
+            "type": "integer"
+          },
+          "meta": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "tasks",
+          "count",
+          "meta"
+        ]
+      }
+    },
+    {
+      "name": "draft_reply",
+      "description": "Draft a contextual reply to an email or meeting thread note.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "noteId": {
+            "type": "string",
+            "description": "Note ID to reply to"
+          },
+          "tone": {
+            "type": "string",
+            "enum": [
+              "friendly",
+              "formal",
+              "brief"
+            ],
+            "description": "Draft tone"
+          },
+          "intent": {
+            "type": "string",
+            "description": "Goal or key points to include in reply"
+          }
+        },
+        "required": [
+          "noteId"
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "subject": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "noteId": {
+            "type": "string"
+          },
+          "meta": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "subject",
+          "body",
+          "noteId",
+          "meta"
+        ]
+      }
+    }
+  ]
+}

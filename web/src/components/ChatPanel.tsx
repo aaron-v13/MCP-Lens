@@ -13,6 +13,13 @@ export interface ChatMessage {
     sourceNoteId?: string;
     sourceTitle?: string;
   }>;
+  searchResults?: Array<{
+    noteId: string;
+    title: string;
+    date: string;
+    snippet: string;
+    score: number;
+  }>;
   draftReply?: {
     subject: string;
     body: string;
@@ -21,58 +28,20 @@ export interface ChatMessage {
 }
 
 interface ChatPanelProps {
-  onSendMessage: (text: string) => void;
+  messages: ChatMessage[];
+  onSendMessage: (text: string) => Promise<void> | void;
   onSelectLensCall?: (toolName: string) => void;
+  isLoading?: boolean;
 }
 
-const INITIAL_MESSAGES: ChatMessage[] = [
-  {
-    id: 'msg-1',
-    sender: 'user',
-    text: 'What are my open action items from last week\'s notes?',
-  },
-  {
-    id: 'msg-2',
-    sender: 'assistant',
-    text: 'I found 4 open action items across your team sprint, 1:1, and hackathon notes from the past 7 days:',
-    toolCallName: 'extract_tasks',
-    toolLatencyMs: 56,
-    structuredTasks: [
-      {
-        task: 'Finalize serverless cold start benchmarks',
-        owner: 'Alex Chen',
-        due: '2026-10-22',
-        sourceNoteId: 'n014',
-        sourceTitle: 'Sprint 42 Architecture Review',
-      },
-      {
-        task: 'Review PR #128 for Streamable HTTP SSE parser',
-        owner: 'Dev Lead',
-        due: '2026-10-21',
-        sourceNoteId: 'n018',
-        sourceTitle: '1:1 Sync with Platform Engineering',
-      },
-      {
-        task: 'Update Devpost demo video storyboard script',
-        owner: 'Sarah Connor',
-        due: '2026-10-22',
-        sourceNoteId: 'n023',
-        sourceTitle: 'Hackathon Submission Checklist',
-      },
-      {
-        task: 'Verify token header redaction in wire-tap logs',
-        owner: 'Security QA',
-        due: '2026-10-23',
-        sourceNoteId: 'n023',
-        sourceTitle: 'Hackathon Submission Checklist',
-      },
-    ],
-  },
-];
-
-export const ChatPanel: React.FC<ChatPanelProps> = ({ onSendMessage, onSelectLensCall }) => {
-  const [messages, setMessages] = useState<ChatMessage[]>(INITIAL_MESSAGES);
+export const ChatPanel: React.FC<ChatPanelProps> = ({
+  messages,
+  onSendMessage,
+  onSelectLensCall,
+  isLoading = false,
+}) => {
   const [inputVal, setInputVal] = useState('');
+  const [copiedDraftId, setCopiedDraftId] = useState<string | null>(null);
 
   const SUGGESTIONS = [
     { text: "What are my open action items from last week's notes?", featured: true },
@@ -81,66 +50,16 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ onSendMessage, onSelectLen
     { text: 'Draft a reply to note n001', featured: false },
   ];
 
-  const handleSend = (text: string) => {
-    if (!text.trim()) return;
-
-    const userMsg: ChatMessage = {
-      id: `usr-${Date.now()}`,
-      sender: 'user',
-      text: text.trim(),
-    };
-
-    setMessages((prev) => [...prev, userMsg]);
+  const handleSend = async (text: string) => {
+    if (!text.trim() || isLoading) return;
     setInputVal('');
-    onSendMessage(text.trim());
+    await onSendMessage(text.trim());
+  };
 
-    // Generate responsive simulated response for fixture UI shell
-    setTimeout(() => {
-      let assistantMsg: ChatMessage;
-
-      if (text.toLowerCase().includes('summar')) {
-        assistantMsg = {
-          id: `asst-${Date.now()}`,
-          sender: 'assistant',
-          text: 'Here is a brief summary of note n001:',
-          toolCallName: 'summarize',
-          toolLatencyMs: 380,
-          draftReply: undefined,
-        };
-      } else if (text.toLowerCase().includes('reply') || text.toLowerCase().includes('draft')) {
-        assistantMsg = {
-          id: `asst-${Date.now()}`,
-          sender: 'assistant',
-          text: 'Drafted reply based on note n001:',
-          toolCallName: 'draft_reply',
-          toolLatencyMs: 65,
-          draftReply: {
-            subject: 'Re: Q3 Strategy Follow-up & MCP Architecture',
-            body: 'Hi team, thanks for the alignment notes. We are on track for the Streamable HTTP rollout on AWS Lambda. Let me know if any questions arise.',
-            noteId: 'n001',
-          },
-        };
-      } else if (text.toLowerCase().includes('find') || text.toLowerCase().includes('search')) {
-        assistantMsg = {
-          id: `asst-${Date.now()}`,
-          sender: 'assistant',
-          text: 'Found 3 matching notes for "launch": [n002] Launch Day Runbook, [n015] Beta Feedback, [n023] Submission Checklist.',
-          toolCallName: 'search_notes',
-          toolLatencyMs: 32,
-        };
-      } else {
-        assistantMsg = {
-          id: `asst-${Date.now()}`,
-          sender: 'assistant',
-          text: 'Found 4 open action items across your team sprint, 1:1, and hackathon notes from the past 7 days:',
-          toolCallName: 'extract_tasks',
-          toolLatencyMs: 56,
-          structuredTasks: INITIAL_MESSAGES[1].structuredTasks,
-        };
-      }
-
-      setMessages((prev) => [...prev, assistantMsg]);
-    }, 250);
+  const handleCopyDraft = (id: string, text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedDraftId(id);
+    setTimeout(() => setCopiedDraftId(null), 2000);
   };
 
   return (
@@ -162,13 +81,14 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ onSendMessage, onSelectLen
                 >
                   <span>⚡</span>
                   <span>{m.toolCallName}</span>
-                  {m.toolLatencyMs && <span>· {m.toolLatencyMs} ms</span>}
+                  {m.toolLatencyMs !== undefined && <span>· {m.toolLatencyMs} ms</span>}
                 </div>
               )}
 
-              <div>{m.text}</div>
+              <div style={{ whiteSpace: 'pre-wrap' }}>{m.text}</div>
 
-              {m.structuredTasks && (
+              {/* Structured Checklist for extract_tasks */}
+              {m.structuredTasks && m.structuredTasks.length > 0 && (
                 <ul className="task-checklist">
                   {m.structuredTasks.map((t, idx) => (
                     <li key={idx} className="task-item">
@@ -176,7 +96,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ onSendMessage, onSelectLen
                       <div className="task-info">
                         <div className="task-title">{t.task}</div>
                         <div className="task-meta">
-                          {t.owner && <span>👤 {t.owner}</span>}
+                          {t.owner && <span>👤 @{t.owner}</span>}
                           {t.due && <span>📅 Due: {t.due}</span>}
                           {t.sourceNoteId && <span>📝 {t.sourceNoteId}</span>}
                         </div>
@@ -186,20 +106,56 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ onSendMessage, onSelectLen
                 </ul>
               )}
 
+              {/* Cards for search_notes */}
+              {m.searchResults && m.searchResults.length > 0 && (
+                <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {m.searchResults.map((r) => (
+                    <div
+                      key={r.noteId}
+                      style={{
+                        background: 'var(--bg-input)',
+                        padding: '8px 10px',
+                        borderRadius: 'var(--radius-sm)',
+                        border: '1px solid var(--border-subtle)',
+                        fontSize: '12px',
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 600, color: 'var(--color-cyan)' }}>
+                        <span>[{r.noteId}] {r.title}</span>
+                        <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>{r.date}</span>
+                      </div>
+                      <div style={{ marginTop: '4px', color: 'var(--text-dim)', fontSize: '11px' }}>
+                        {r.snippet}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Card for draft_reply */}
               {m.draftReply && (
                 <div
                   style={{
                     marginTop: '10px',
-                    padding: '10px',
+                    padding: '12px',
                     background: 'var(--bg-input)',
                     borderRadius: 'var(--radius-sm)',
                     border: '1px solid var(--border-subtle)',
                   }}
                 >
-                  <div style={{ fontWeight: 600, color: 'var(--color-cyan)', fontSize: '12px' }}>
-                    Subject: {m.draftReply.subject}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontWeight: 600, color: 'var(--color-cyan)', fontSize: '12px' }}>
+                      Subject: {m.draftReply.subject}
+                    </span>
+                    <button
+                      className="action-pill-btn"
+                      onClick={() => handleCopyDraft(m.id, `${m.draftReply?.subject}\n\n${m.draftReply?.body}`)}
+                      title="Copy draft to clipboard"
+                    >
+                      {copiedDraftId === m.id ? '✓ Copied' : 'Copy'}
+                    </button>
                   </div>
-                  <div style={{ marginTop: '6px', fontSize: '12px', whiteSpace: 'pre-wrap' }}>
+                  <div style={{ marginTop: '8px', fontSize: '12px', whiteSpace: 'pre-wrap', color: '#e2e8f0' }}>
                     {m.draftReply.body}
                   </div>
                 </div>
@@ -214,6 +170,14 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ onSendMessage, onSelectLen
             </div>
           </div>
         ))}
+
+        {isLoading && (
+          <div className="chat-bubble-row assistant">
+            <div className="chat-bubble assistant" style={{ fontStyle: 'italic', color: 'var(--text-muted)' }}>
+              Alexa+ is calling MCP tools...
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="chat-suggestions">
@@ -222,6 +186,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ onSendMessage, onSelectLen
             key={idx}
             className={`suggestion-chip ${s.featured ? 'featured' : ''}`}
             onClick={() => handleSend(s.text)}
+            disabled={isLoading}
           >
             {s.featured ? '★ ' : ''}
             {s.text}
@@ -242,9 +207,10 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ onSendMessage, onSelectLen
           placeholder="Ask Alexa+ (e.g. 'What are my open action items?')"
           value={inputVal}
           onChange={(e) => setInputVal(e.target.value)}
+          disabled={isLoading}
         />
-        <button type="submit" className="chat-send-btn">
-          Send
+        <button type="submit" className="chat-send-btn" disabled={isLoading || !inputVal.trim()}>
+          {isLoading ? '...' : 'Send'}
         </button>
       </form>
     </aside>

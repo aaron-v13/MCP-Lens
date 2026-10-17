@@ -1,0 +1,56 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  mcp-lens-server
+  Self-hosted MCP Notes Server over Streamable HTTP on AWS Lambda with Function URL response streaming.
+
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 512
+    Runtime: nodejs20.x
+    Architectures:
+      - x86_64
+
+Resources:
+  McpNotesFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../server/
+      Handler: dist/lambda.handler
+      Description: MCP Notes Server exposing 4 tools over 50 seeded notes with SSE streaming
+      Environment:
+        Variables:
+          PORT: '8787'
+          MCP_LENS_TOKEN: dev-token-change-me
+          ALLOWED_ORIGINS: 'http://localhost:5173'
+          CORPUS_NOW: '2026-10-21'
+          SUMMARY_CHUNK_DELAY_MS: '60'
+          LLM_PROVIDER: mock
+      FunctionUrlConfig:
+        AuthType: NONE
+        InvokeMode: RESPONSE_STREAM
+        Cors:
+          AllowOrigins:
+            - 'http://localhost:5173'
+          AllowHeaders:
+            - 'authorization'
+            - 'content-type'
+            - 'accept'
+            - 'mcp-session-id'
+            - 'mcp-protocol-version'
+            - 'origin'
+          AllowMethods:
+            - 'POST'
+            - 'GET'
+            - 'OPTIONS'
+            - 'DELETE'
+          ExposeHeaders:
+            - 'mcp-session-id'
+            - 'mcp-protocol-version'
+            - 'content-type'
+
+Outputs:
+  McpFunctionUrl:
+    Description: "Function URL for MCP Notes Server (Streamable HTTP)"
+    Value: !GetAtt McpNotesFunctionUrl.FunctionUrl
