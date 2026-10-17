@@ -154,7 +154,17 @@ code, pre, .mono {
   border-radius: var(--radius-md);
   padding: 4px 10px;
   gap: 8px;
+}
+
+.conn-field-group.endpoint-field {
+  flex: 1.6;
+  min-width: 220px;
+}
+
+.conn-field-group.token-field {
   flex: 1;
+  min-width: 140px;
+  max-width: 200px;
 }
 
 .conn-field-label {

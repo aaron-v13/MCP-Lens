@@ -89,6 +89,13 @@ export const App: React.FC = () => {
     };
   }, []);
 
+  // Attempt auto-connect on load if not explicitly in ?fixtures=1 mode
+  useEffect(() => {
+    if (!isFixtureUrl) {
+      handleConnect(serverUrl, token).catch(() => {});
+    }
+  }, []);
+
   // Connect handler
   const handleConnect = async (url = serverUrl, tok = token) => {
     try {

@@ -35,7 +35,7 @@ export const ConnectionBar: React.FC<ConnectionBarProps> = ({
         </div>
 
         <div className="conn-inputs">
-          <div className="conn-field-group">
+          <div className="conn-field-group endpoint-field" title={serverUrl}>
             <span className="conn-field-label">Endpoint</span>
             <input
               type="text"
@@ -46,7 +46,7 @@ export const ConnectionBar: React.FC<ConnectionBarProps> = ({
             />
           </div>
 
-          <div className="conn-field-group" style={{ maxWidth: '240px' }}>
+          <div className="conn-field-group token-field">
             <span className="conn-field-label">Token</span>
             <input
               type="password"
