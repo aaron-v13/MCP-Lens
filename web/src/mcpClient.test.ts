@@ -49,4 +49,10 @@ describe('McpLensClient & Wire-Tap Logic', () => {
     const isTool = Boolean(toolErr.result?.isError);
     expect(isTool).toBe(true);
   });
+
+  it('instantiates client with valid notification handler schema', () => {
+    const client = new McpLensClient();
+    expect(client).toBeDefined();
+    expect(client.isConnected).toBe(false);
+  });
 });

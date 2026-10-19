@@ -157,8 +157,8 @@ code, pre, .mono {
 }
 
 .conn-field-group.endpoint-field {
-  flex: 1.6;
-  min-width: 220px;
+  flex: 2;
+  min-width: 260px;
 }
 
 .conn-field-group.token-field {
@@ -197,6 +197,7 @@ code, pre, .mono {
   cursor: pointer;
   transition: opacity 0.15s ease, transform 0.05s ease;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 .conn-btn:hover {
   opacity: 0.9;
@@ -217,6 +218,8 @@ code, pre, .mono {
   font-weight: 600;
   padding: 4px 10px;
   border-radius: var(--radius-full);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 .status-indicator.connected {
   background-color: var(--color-green-bg);

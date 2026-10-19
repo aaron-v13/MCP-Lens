@@ -1,5 +1,6 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
+import { ProgressNotificationSchema } from '@modelcontextprotocol/sdk/types.js';
 import { WireEvent, WireErrorKind, ToolDefinition } from './lens/types';
 
 export interface CallToolOptions {
@@ -288,7 +289,10 @@ export class McpLensClient {
       requestInit: {
         headers: {
           Authorization: `Bearer ${token}`,
-          Origin: window.location.origin || 'http://localhost:5173',
+          Origin:
+            typeof window !== 'undefined' && window.location?.origin
+              ? window.location.origin
+              : 'http://localhost:5173',
         },
       },
       fetch: wireTapFetch,
@@ -306,9 +310,7 @@ export class McpLensClient {
 
     // Track progress notifications
     client.setNotificationHandler(
-      {
-        method: 'notifications/progress' as any,
-      } as any,
+      ProgressNotificationSchema,
       (notification: any) => {
         this.emitEvent({
           id: `prog-${Date.now()}`,
